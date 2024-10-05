@@ -126,7 +126,6 @@ def insertar_cursos_secciones_aulas(session, cursos_data, secciones_data, aulas_
 
     session.commit()
 
-# Reiniciar todas las tablas
 reiniciar_tablas()
 
 # Obtener los datos de los estudiantes desde el PDF
