@@ -86,7 +86,17 @@ def insertar_estudiantes(session, estudiantes_data):
         session.add(nuevo_estudiante)
     session.commit()
 
-def insertar_cursos_y_secciones(session, cursos_data):
+def insertar_cursos_secciones_aulas(session, cursos_data, secciones_data, aulas_data):
+        
+    for aula_data in aulas_data:
+        aula = Aula(
+            nombre=aula_data['nombre'],
+            capacidad=aula_data['capacidad'],
+            tipo=aula_data['tipo']
+        )
+        session.add(aula)
+        session.flush()
+
     for curso_data in cursos_data:
         curso = Curso(
             ciclo=curso_data['ciclo'],
@@ -95,35 +105,38 @@ def insertar_cursos_y_secciones(session, cursos_data):
             creditos=curso_data['creditos']
         )
         session.add(curso)
-        session.flush()  # Necesario para obtener el ID del curso
+        session.flush()
 
+    for seccion_data in secciones_data:
         seccion = Seccion(
-            id_curso=curso.id,
-            id_aula_teoria=None,  # Asigna el ID del aula de teoría si está disponible
-            id_aula_labo=None,  # Asigna el ID del aula de laboratorio si está disponible
-            numero=curso_data['seccion'],
-            code_docente=curso_data['codigo_docente'],
-            docente=curso_data['docente'],
-            tope=curso_data['tope'],
-            dia_teoria=curso_data['dia_teoria'],
-            horario_teoria=curso_data['horario_teoria'],
-            dia_labo=curso_data['dia_laboratorio'],
-            horario_labo=curso_data['horario_laboratorio']
+            id_curso=seccion_data['id_curso'],
+            id_aula_teoria=seccion_data['id_aula_teoria'],
+            id_aula_labo=seccion_data['id_aula_labo'],
+            numero=seccion_data['numero'],
+            code_docente=seccion_data['code_docente'],
+            docente=seccion_data['docente'],
+            tope=seccion_data['tope'],
+            dia_teoria=seccion_data['dia_teoria'],
+            horario_teoria=seccion_data['horario_teoria'],
+            dia_labo=seccion_data['dia_labo'],
+            horario_labo=seccion_data['horario_labo']
         )
         session.add(seccion)
+        session.flush()
+
     session.commit()
 
 # Reiniciar todas las tablas
-# reiniciar_tablas()
+reiniciar_tablas()
 
 # Obtener los datos de los estudiantes desde el PDF
-pdf_file_path = r"D:\2023 FISI.pdf"
-#pdf_file_path = r"D:\Programacion_Asignaturas.pdf"
-data = get_estudiantes(pdf_file_path)
+pdf_student_path = r"D:\2023 FISI.pdf"
+pdf_cursos_path = r"D:\Programacion_Asignaturas.pdf"
 
 # Crear una sesión y insertar los datos
 session = SessionLocal()
-insertar_estudiantes(session, data)
+insertar_estudiantes(session, get_estudiantes(pdf_student_path))
+insertar_cursos_secciones_aulas(session, *get_cursos(pdf_cursos_path))
 session.close()
 
-print("Datos de estudiantes insertados exitosamente.")
+print("Datos de estudiantes y cursos insertados exitosamente.")

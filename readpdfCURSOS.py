@@ -1,5 +1,102 @@
 import fitz  # PyMuPDF
 import re
+import copy
+from datetime import datetime
+
+disponibilidad = {
+    "LUNES": ["00:00 - 08:00"],
+    "MARTES": ["00:00 - 08:00"],
+    "MIERCOLES": ["00:00 - 08:00"],
+    "JUEVES": ["00:00 - 08:00"],
+    "VIERNES": ["00:00 - 08:00"],
+    "SABADO": ["00:00 - 08:00"]
+}
+
+aulas = []
+
+# Agregamos las aulas (101-108 y 201-208)
+for i in range(101, 110):
+    capacidad = 40 if i < 107 else 45
+    aulas.append({
+        "nombre": str(i),
+        "capacidad": capacidad,
+        "tipo": "Teoría",
+        "horario": copy.deepcopy(disponibilidad)
+    })
+
+for i in range(201, 210):
+    aulas.append({
+        "nombre": str(i),
+        "capacidad": 50,
+        "tipo": "Teoría",
+        "horario": copy.deepcopy(disponibilidad)
+    })
+
+# Agregamos los salones NP (101NP-108NP y 1NP-10NP)
+for i in range(101, 110):
+    aulas.append({
+        "nombre": f"{i} NP",
+        "capacidad": 40,
+        "tipo": "Teoría",
+        "horario": copy.deepcopy(disponibilidad)
+    })
+
+# Creamos la lista de laboratorios
+for i in range(1, 11):  # Laboratorios 1-8
+    aulas.append({
+        "nombre": str(i),
+        "capacidad": 40,
+        "tipo": "Laboratorio",
+        "horario": copy.deepcopy(disponibilidad)
+    })
+
+for i in range(1, 11):  # Laboratorios NP 1-10
+    aulas.append({
+        "nombre": f"{i} NP",
+        "capacidad": 40,
+        "tipo": "Laboratorio",
+        "horario": copy.deepcopy(disponibilidad)
+    })
+
+# Función para verificar si un horario está disponible
+def verificar_disponibilidad(horario, aula):
+    dia = horario['dia']
+    inicio, fin = horario['horario'].split(' - ')
+    inicio = datetime.strptime(inicio, "%H:%M")
+    fin = datetime.strptime(fin, "%H:%M")
+
+    # Comprobar si el aula ya tiene reservas en el día y horario dado
+    for reserva in aula['horario'][dia]:
+        r_inicio, r_fin = reserva.split(' - ')
+        r_inicio = datetime.strptime(r_inicio, "%H:%M")
+        r_fin = datetime.strptime(r_fin, "%H:%M")
+        if (inicio < r_fin) and (fin > r_inicio):
+            return False
+    return True
+
+# Función para encontrar un aula de teoría disponible
+def encontrar_aula_teoria(aulas, seccion):
+    for index, aula in enumerate(aulas): 
+        if aula['tipo'] == 'Teoría' and aula['capacidad'] >= int(seccion['tope']):
+            if verificar_disponibilidad({
+                'dia': seccion['dia_teoria'],
+                'horario': seccion['horario_teoria']
+            }, aula):
+                aula['horario'][seccion['dia_teoria']].append(seccion['horario_teoria'])
+                return index+1
+    return None
+
+# Función para encontrar un laboratorio disponible
+def encontrar_aula_laboratorio(aulas, seccion):
+    for index, aula in enumerate(aulas):
+        if aula['tipo'] == 'Laboratorio':
+            if verificar_disponibilidad({
+                'dia': seccion['dia_laboratorio'],
+                'horario': seccion['horario_laboratorio']
+            }, aula):
+                aula['horario'][seccion['dia_laboratorio']].append(seccion['horario_laboratorio'])
+                return index+1
+    return None
 
 # Función para extraer texto del PDF y organizarlo por página
 def extract_text_by_page(pdf_path):
@@ -111,6 +208,49 @@ def procesar_texto(texto, ciclo):
         resultados.append(curso)
     return resultados
 
+def separate(all_courses):
+    cursos = []
+    secciones = []
+    id_curso = 0
+
+    conjunto_cursos = set()
+
+    for course in all_courses:
+        aula_teoria = encontrar_aula_teoria(aulas, course)
+        aula_laboratorio = encontrar_aula_laboratorio(aulas, course)
+
+        if course['codigo'] not in conjunto_cursos:
+            conjunto_cursos.add(course['codigo'])
+            id_curso += 1
+            
+            curso = {
+                'id': id_curso,
+                'ciclo': course['ciclo'],
+                'codigo': course['codigo'],
+                'nombre': course['nombre'],
+                'creditos': course['creditos']
+            }
+            cursos.append(curso)
+
+        seccion = {
+            'id_curso': id_curso,
+            'id_aula_teoria': aula_teoria if aula_teoria else None,
+            'id_aula_labo': aula_laboratorio if aula_laboratorio else None,
+            'numero': course['seccion'],
+            'code_docente': course['codigo_docente'],
+            'docente': course['docente'],
+            'tope': course['tope'],
+            'matriculados': course['matriculados'],
+            'dia_teoria': course['dia_teoria'],
+            'horario_teoria': course['horario_teoria'],
+            'dia_labo': course['dia_laboratorio'],
+            'horario_labo': course['horario_laboratorio']
+        }
+
+        secciones.append(seccion) 
+
+    return (cursos, secciones, aulas)
+
 # Función principal para ejecutar la extracción, procesamiento y visualización
 def main(pdf_path):
     pages_text = extract_text_by_page(pdf_path)
@@ -127,11 +267,8 @@ def main(pdf_path):
             else:
                 all_courses.extend(result)
 
-    for course in all_courses:
-        print(course)  # Imprimir todos los cursos concatenados
-    return all_courses
-
+    return separate(all_courses)
 
 if __name__ == "__main__":
     pdf_file_path = "D:\\Programacion_Asignaturas.pdf"  # Ruta proporcionada para tu archivo PDF
-    main(pdf_file_path)
+    cursos, secciones, aulasu = main(pdf_file_path)
