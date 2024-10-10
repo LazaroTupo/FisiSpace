@@ -15,6 +15,15 @@ def get_db():
     finally:
         db.close()
 
+# Ruta para verifiacr el codigo de estudiante
+
+@app.get("/estudiantes/verificar/{codigo_estudiante}")
+def verificar_codigo_estudiante(codigo_estudiante: str, db: Session = Depends(get_db)):
+    estudiante = crud.get_estudiante_by_codigo(db, codigo_estudiante=codigo_estudiante)
+    if estudiante is None:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    return {"message": "Código válido", "estudiante_id": estudiante.id}
+
 # Rutas para Estudiantes
 
 @app.get("/estudiantes/")

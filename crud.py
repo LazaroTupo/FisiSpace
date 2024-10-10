@@ -9,6 +9,9 @@ def get_estudiantes(db: Session, skip: int = 0, limit: int = 10):
 def get_estudiante(db: Session, estudiante_id: int):
     return db.query(Estudiante).filter(Estudiante.id == estudiante_id).first()
 
+def get_estudiante_por_codigo(db: Session, codigo_estudiante: str):
+    return db.query(Estudiante).filter(Estudiante.codigo == codigo_estudiante).first()
+
 def create_estudiante(db: Session, estudiante: schemas.EstudianteCreate):
     db_estudiante = Estudiante(**estudiante.dict())
     db.add(db_estudiante)
