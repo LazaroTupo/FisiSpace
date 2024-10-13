@@ -32,7 +32,7 @@ $env.VIRTUAL_ENV = $virtual_env
 # Update PATH
 $env._OLD_VIRTUAL_PATH = $env.PATH
 let venv_bin = ($virtual_env | path join "bin")
-$env.PATH = ($env.PATH | split row (char esep) | prepend $venv_bin | str join (char esep))
+$env.PATH = ($env.PATH | split row (char esep) | prepend $venv_bin | uniq)
 
 # Unset PYTHONHOME if set
 if ("PYTHONHOME" in $env) {
