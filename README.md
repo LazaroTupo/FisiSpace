@@ -24,6 +24,14 @@ En linux
   ```
   source .venv/bin/activate
   ```
+
+- Para Nushell
+
+```
+       cp activate.nu .venv/bin/activate.nu
+       source .venv/bin/activate.nu
+```
+
 En Windows
   ```
   .venv\Scripts\activate
