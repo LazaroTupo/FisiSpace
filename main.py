@@ -1,8 +1,13 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from models import Estudiante, Curso, Base
+from fastapi.middleware.cors import CORSMiddleware
 from database import SessionLocal, engine
 import crud, schemas
+import pdfplumber
+import io
+import re
 
 Base.metadata.create_all(bind=engine)
 
@@ -19,7 +24,7 @@ def get_db():
 
 @app.get("/estudiantes/verificar/{codigo_estudiante}")
 def verificar_codigo_estudiante(codigo_estudiante: str, db: Session = Depends(get_db)):
-    estudiante = crud.get_estudiante_by_codigo(db, codigo_estudiante=codigo_estudiante)
+    estudiante = crud.get_estudiante_por_codigo(db, codigo_estudiante=codigo_estudiante)
     if estudiante is None:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     return {"message": "Código válido", "estudiante_id": estudiante.id}
@@ -103,3 +108,44 @@ def delete_curso(curso_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Curso no encontrado")
     crud.delete_curso(db=db, curso_id=curso_id)
     return db_curso
+
+@app.post("/upload-pdf/")
+async def upload_pdf(file: UploadFile = File(...)):
+    if file.content_type != "application/pdf":
+        raise HTTPException(status_code=400, detail="Invalid file type. Only PDFs are accepted.")
+
+    try:
+        # Read the PDF content
+        pdf_data = await file.read()
+        with pdfplumber.open(io.BytesIO(pdf_data)) as pdf:
+            extracted_data = {
+                "codigoMatricula": None,
+                "nombres": None,
+                "periodoAcademico": None,
+                "table_data": []
+            }
+
+            page = pdf.pages[0]
+            text = page.extract_text()
+
+            extracted_data["codigoMatricula"] = extract_field_from_text(text, r'Código de Matrícula\s*:\s*(\S+)')
+            extracted_data["nombres"] = extract_field_from_text(text, r'Nombres y Apellidos\s*:\s*(.+)')
+            extracted_data["periodoAcademico"] = extract_field_from_text(text, r'Periodo Académico\s*:\s*(\S+)')
+
+            table = page.extract_table()
+            if table:
+                headers = ["Ciclo", "Código Asignatura", "Créd.", "Seccion", "Docente Asignado"]
+                for row in table[1:]:  # Skip header
+                    extracted_data["table_data"].append(dict(zip(headers, row)))
+
+        return JSONResponse(content={"extracted_data": extracted_data})
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing the PDF: {str(e)}")
+
+def extract_field_from_text(text: str, pattern: str):
+    """
+    Extracts the value of a specific field from the PDF text based on a given regex pattern.
+    """
+    match = re.search(pattern, text)
+    return match.group(1).strip() if match else None
