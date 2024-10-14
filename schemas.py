@@ -1,5 +1,7 @@
 from pydantic import BaseModel
 
+# Modelo de datos para los estudiantes
+
 class EstudianteBase(BaseModel):
     codigo: str
     apellidos_nombre: str
@@ -18,6 +20,8 @@ class Estudiante(EstudianteBase):
     class Config:
         from_attributes = True
 
+# Modelo de datos para los cursos
+
 class CursoBase(BaseModel):
     ciclo: str
     codigo: str
@@ -35,3 +39,12 @@ class Curso(CursoBase):
 
     class Config:
         from_attributes = True
+
+# Modelo de datos para las aulas
+
+class CursoSalones(BaseModel):
+    salon_teoria: str
+    salon_laboratorio: str
+
+    class Config:
+        orm_mode = True

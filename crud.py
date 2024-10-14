@@ -1,7 +1,9 @@
 # crud.py
 from sqlalchemy.orm import Session
-from models import Estudiante, Curso
+from models import Estudiante, Curso, Seccion
 import schemas
+
+# Estudiante
 
 def get_estudiantes(db: Session, skip: int = 0, limit: int = 10):
     return db.query(Estudiante).offset(skip).limit(limit).all()
@@ -33,6 +35,7 @@ def delete_estudiante(db: Session, estudiante_id: int):
     db.commit()
     return db_estudiante
 
+# Curso
 
 def get_cursos(db: Session, skip: int = 0, limit: int = 10):
     return db.query(Curso).offset(skip).limit(limit).all()
@@ -60,3 +63,13 @@ def delete_curso(db: Session, curso_id: int):
     db.delete(db_curso)
     db.commit()
     return db_curso
+
+# Salón
+
+def get_salon_por_curso(db: Session, nombre_curso: str, codigo_curso: str, numero_seccion: str):
+    # Buscar la sección que corresponde al curso y sección indicados
+    return db.query(Seccion).join(Curso).filter(
+        Curso.nombre == nombre_curso,
+        Curso.codigo == codigo_curso,
+        Seccion.numero == numero_seccion
+    ).first()

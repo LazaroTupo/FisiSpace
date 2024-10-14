@@ -24,6 +24,20 @@ def verificar_codigo_estudiante(codigo_estudiante: str, db: Session = Depends(ge
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     return {"message": "Código válido", "estudiante_id": estudiante.id}
 
+# Ruta para devolver las aulas de un curso por su nombre, codigo y seccion
+
+@app.get("/cursos/salon/", response_model=schemas.CursoSalones)
+def obtener_salon_por_curso(nombre_curso: str, codigo_curso: str, numero_seccion: str, db: Session = Depends(get_db)):
+    seccion = crud.get_salon_por_curso(db, nombre_curso=nombre_curso, codigo_curso=codigo_curso, numero_seccion=numero_seccion)
+    
+    if seccion is None:
+        raise HTTPException(status_code=404, detail="Sección no encontrada para el curso indicado")
+    
+    return {
+        "salon_teoria": seccion.aula_teoria.nombre if seccion.aula_teoria else "No asignado",
+        "salon_laboratorio": seccion.aula_labo.nombre if seccion.aula_labo else "No asignado"
+    }
+
 # Rutas para Estudiantes
 
 @app.get("/estudiantes/")
